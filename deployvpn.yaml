@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mohamedvpn-server
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9176"
+  labels:
+    app: mohamedvpn-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mohamedvpn-server
+  template:
+    metadata:
+      labels:
+        app: mohamedvpn-server
+    spec:
+      containers:
+      - name: mohamedvpn
+        image: jihedmakthri/vpn-servers:mohamed_server1-vpn
+        ports:
+        - containerPort: 1195
+          protocol: UDP
+        - containerPort: 9176
+          protocol: TCP
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1024Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        volumeMounts:
+        - name: mohamedvpn-storage
+          mountPath: /var/log/openvpn
+#        - name: client-config
+#          mountPath: /etc/openvpn/client
+      volumes:
+      - name: mohamedvpn-storage
+        persistentVolumeClaim:
+          claimName: mohamedvpn-claim-logs
+#      - name: client-config
+#        persistentVolumeClaim:
+#          claimName: openvpn-claim
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mohamedvpn-service
+  labels:
+    app: mohamedvpn-server
+spec:
+  type: LoadBalancer
+  ports:
+  - name: vpn
+    port: 1194
+    targetPort: 1194
+    protocol: UDP
+  - name: vpn2
+    port: 1195
+    targetPort: 1195
+    protocol: UDP
+  - name: exporter
+    port: 9176
+    targetPort: 9176
+    protocol: TCP
+  selector:
+      app: mohamedvpn-server
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mohamedvpn-claim-logs
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 6Gi
+
+---
+
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: openvpn-claim
+#spec:
+#  storageClassName: nfs-client
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 6Gi
+

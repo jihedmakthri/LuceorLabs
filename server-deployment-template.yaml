@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: CLIENT_SERVER_NAME-server
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9176"
+  labels:
+    app: CLIENT_SERVER_NAME-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: CLIENT_SERVER_NAME-server
+  template:
+    metadata:
+      labels:
+        app: CLIENT_SERVER_NAME-server
+    spec:
+      containers:
+      - name: CLIENT_SERVER_NAME
+        image: jihedmakthri/vpn-servers:IMAGE_TAG
+        ports:
+        - containerPort: VPN_PORT
+          protocol: VPN_PROTOCOL
+        - containerPort: 9176
+          protocol: TCP
+        - containerPort: 8032
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        env:
+        - name: KUBE_VPN_SERVICE_NAME
+          value: CLIENT_SERVER_NAME-service
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2048Mi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        volumeMounts:
+        - name: CLIENT_SERVER_NAME-storage
+          mountPath: /var/log/openvpn
+        - name: CLIENT_SERVER_NAME-client-config
+          mountPath: /etc/openvpn/client
+      volumes:
+      - name: CLIENT_SERVER_NAME-storage
+        persistentVolumeClaim:
+          claimName: CLIENT_SERVER_NAME-claim-logs
+      - name: CLIENT_SERVER_NAME-client-config
+        persistentVolumeClaim:
+          claimName: CLIENT_SERVER_NAME-claim
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: CLIENT_SERVER_NAME-service
+  labels:
+    app: CLIENT_SERVER_NAME-server
+spec:
+  type: LoadBalancer
+  ports:
+  - name: vpn
+    port: VPN_PORT
+    targetPort: VPN_PORT
+    protocol: VPN_PROTOCOL
+  - name: exporter
+    port: 9176
+    targetPort: 9176
+    protocol: TCP
+  - name: http
+    port: 8032
+    targetPort: 8032
+  selector:
+      app: CLIENT_SERVER_NAME-server
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: CLIENT_SERVER_NAME-claim-logs
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: CLIENT_SERVER_NAME-claim
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 4Gi
+
+
