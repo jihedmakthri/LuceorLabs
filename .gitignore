@@ -8,3 +8,4 @@ test.sh
 easy-rsa
 pipeline.groovy
 conf-vars-vpn.sh
+deployvpn.yaml
