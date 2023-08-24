@@ -6,3 +6,5 @@ client.conf
 server.conf
 test.sh
 easy-rsa
+pipeline.groovy
+conf-vars-vpn.sh

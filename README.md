@@ -45,7 +45,7 @@
  ``` 
  - initialize the easy-rsa PKI system and build your root certificates for the openVPN servers and clients:
  
- <ins>Before proceeding, make sure you edit the vars file in the easy-rsa directory to match tour needs, check easy-rsa documentation from this link: https://easy-rsa.readthedocs.io/en/latest/advanced/</ins>
+ <ins>Before proceeding, make sure you edit the vars file in the easy-rsa directory to match your needs, check easy-rsa documentation from this link: https://easy-rsa.readthedocs.io/en/latest/advanced/</ins>
 
  ```bash
  cd /path/to/your/working-directory/easy-rsa
@@ -649,7 +649,7 @@ spec:
                   number: 8032
 ```
 ### III- Configure Jenkins pipeline for new updates
-- Added these lines to the jenkins pipeline to route UDP/TCP traffic to allow each client to connect to it's vpn server:
+- Added these lines to the jenkins pipeline on the stage "Deploy to kubernetes" to route UDP/TCP traffic to allow each client to connect to it's vpn server:
 
 ```groovy
 echo "patching nginx ingress configmaps and service to route udp/tcp traffic for the server created..."
