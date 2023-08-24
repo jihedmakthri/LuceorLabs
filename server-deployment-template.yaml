@@ -63,7 +63,7 @@ metadata:
   labels:
     app: CLIENT_SERVER_NAME-server
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - name: vpn
     port: VPN_PORT
@@ -91,7 +91,7 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 2Gi
+      storage: 1Gi
 
 ---
 
@@ -107,4 +107,23 @@ spec:
     requests:
       storage: 4Gi
 
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: CLIENT_SERVER_NAME-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: vpn.luceor.com
+      http:
+        paths:
+          - path: /CLIENT_SERVER_NAME-service/generateclient
+            pathType: Prefix
+            backend:
+              service:
+                name: CLIENT_SERVER_NAME-service
+                port:
+                  number: 8032
 

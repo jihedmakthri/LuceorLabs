@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vpn-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: vpn.luceor.com
+      http:
+        paths:
+          - path: /jihed3-service/generateclient
+            pathType: Prefix
+            backend:
+              service:
+                name: jihed3-service
+                port:
+                  number: 8032
+          - path: /jihed4-service/generateclient
+            pathType: Prefix
+            backend:
+              service:
+                name: jihed4-service
+                port:
+                  number: 8032
+          - path: /jihed5-service/generateclient
+            pathType: Prefix
+            backend:
+              service:
+                name: jihed5-service
+                port:
+                  number: 8032

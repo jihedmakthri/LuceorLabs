@@ -475,7 +475,24 @@ The java app containes one API that you can reach with a http POST method from o
     - The *example.domain* is the domain used in the kubernetes Ingress object, you have to configure your ingress mapping and forwarding, for Example:
 
       ```yaml
-      ingress controller yaml file
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: example-ingress
+        annotations:
+          nginx.ingress.kubernetes.io/rewrite-target: /$1
+      spec:
+        rules:
+          - host: example.domain
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: web
+                      port:
+                        number: 8080
       ```  
     - You can open *Postman* and try the POST method, pass into the body as JSON format { "clientName" : "example-client01" }, or you can try with the command below on your terminal:
 
@@ -536,3 +553,127 @@ rm -rf /etc/openvpn/client/$1
 > <ins>NOTE:</ins> that while your building the base image for your VPN servers creation, don't forget to change *YOUR.DOMAIN.HERE* with your actual dns record reserved for the VPN service
 
 - Finally you will find each client created on the persistant volume storage that you have chosen before. <ins>Return to the kubernetes templating file for more details</ins>.
+
+
+
+
+# Updates
+---
+-  This section is about new updated version of the LVAT, added items:
+   - Nginx ingress controller
+   - Non-http/https routing through Ingress controller
+ 
+### I- Nginx Ingress Controller deployment
+
+If you don't have an Ingress controller deployed on your cluster then follow these steps to install *Nginx Ingress Controller*:
+
+>before executing the command, check compatibility of the controller version with your kubernetes actual version, follow this link: <ins>https://github.com/kubernetes/ingress-nginx</ins>
+
+command:
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.6.4/deploy/static/provider/cloud/deploy.yaml
+```
+check if the Ingress controller have been installed correctly, you should see something like thing:
+
+```console
+NAME                                        READY   STATUS      RESTARTS   AGE
+ingress-nginx-admission-create-htjdr        0/1     Completed   0          22h
+ingress-nginx-admission-patch-xkjf7         0/1     Completed   2          22h
+ingress-nginx-controller-5799479596-68p8s   1/1     Running     0          148m
+```
+Now  deploy two config maps named "udp-services" and "tcp-services" in the same namespace where the ingress controller is deployed:
+
+*udp-services.yaml :*
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: udp-services
+  namespace: ingress-nginx
+data:
+```
+
+*tcp-services.yaml :*
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tcp-services
+  namespace: ingress-nginx
+data:
+```
+<ins> *you can find these files under /ingress in your working directory after cloning the project.*</ins>
+
+Now patch the Ingress controller deployment to take effects from the last configmaps deployed:
+```json
+kubectl patch deployment ingress-nginx-controller -n ingress-nginx \
+  --type json -p \
+  '[{
+    "op": "add",
+    "path": "/spec/template/spec/containers/0/args/-",
+    "value": "--tcp-services-configmap=$(POD_NAMESPACE)/tcp-services"
+  },
+  {
+    "op": "add",
+    "path": "/spec/template/spec/containers/0/args/-",
+    "value": "--udp-services-configmap=$(POD_NAMESPACE)/udp-services"
+  }]'
+```
+
+- **In order to configure nginx server to route UDP traffic you have to add some arguments to ingress controller default configmap: **
+```bash
+kubectl patch configmap ingress-nginx-controller -n ingress-nginx --type=json -p='[{"op": "add", "path": "/data/proxy-stream-responses", "value": "2"}]'
+```
+> **Quick Fix Bug :**
+>> - This modification make the nginx server not pretending any response from the targeted server, because UDP (User Datagram Protocol) is a no-mode packet transport protocol which allows to send a message without acknowledgment, and if you don't force the proxy-stream-responses value to 2 or upper, client will not be able to connect to the UDP based VPN server in the cluster.
+### IV- Manifest file template update
+We have added an ingress object into the *server-deployment-template.yaml* so you can simply generate clients for your vpn server with postman or 'curl' command as shown in this [Section](#vpn-clients-generation-process)
+- Ingress template:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: CLIENT_SERVER_NAME-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: YOUR.DOMAIN.HERE
+      http:
+        paths:
+          - path: /CLIENT_SERVER_NAME-service/generateclient
+            pathType: Prefix
+            backend:
+              service:
+                name: CLIENT_SERVER_NAME-service
+                port:
+                  number: 8032
+```
+### III- Configure Jenkins pipeline for new updates
+- Added these lines to the jenkins pipeline to route UDP/TCP traffic to allow each client to connect to it's vpn server:
+
+```groovy
+echo "patching nginx ingress configmaps and service to route udp/tcp traffic for the server created..."
+                    
+  sh "kubectl --kubeconfig=${kubeConfig} apply -f ${base_path}/VPNs/${env.customer_name}/${env.customer_name}-server-deployment.yaml -n ${env.KUBE_NAMESPACE}"
+  if(env.VPN_PROTOCOL == "udp"){
+      sh """
+      kubectl --kubeconfig=${kubeConfig} patch configmap udp-services -n ${env.INGRESS_NAMESPACE} --type=json -p='[{"op": "add", "path": "/data/${env.VPN_PORT}", "value": "${env.KUBE_NAMESPACE}/${env.customer_name}-service:${env.VPN_PORT}"}]'
+      """
+      sh """
+      kubectl --kubeconfig=${kubeConfig} patch service ingress-nginx-controller -n ${env.INGRESS_NAMESPACE} --type='json' -p='[{"op": "add", "path": "/spec/ports/-", "value": {"name": "${env.customer_name}-service-${env.VPN_PROTOCOL}","port": ${env.VPN_PORT},"protocol": "UDP","targetPort": ${env.VPN_PORT}}}]'
+      """
+  }else{
+      sh """
+      kubectl --kubeconfig=${kubeConfig} patch configmap tcp-services -n ${env.INGRESS_NAMESPACE} --type=json -p='[{"op": "add", "path": "/data/${env.VPN_PORT}", "value": "${env.KUBE_NAMESPACE}/${env.customer_name}-service:${env.VPN_PORT}"}]'
+      """
+      sh """
+      kubectl --kubeconfig=${kubeConfig} patch service ingress-nginx-controller -n ${env.INGRESS_NAMESPACE} --type='json' -p='[{"op": "add", "path": "/spec/ports/-", "value": {"name": "${env.customer_name}-service-${env.VPN_PROTOCOL}","port": ${env.VPN_PORT},"protocol": "TCP","targetPort": ${env.VPN_PORT}}}]'
+      """
+  }
+```
+
+> <ins>**Don't forget to add a new Variable to the pipeline: INGRESS_NAMESPACE**</ins>
+
+
+
+
