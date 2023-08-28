@@ -468,7 +468,7 @@ The java app containes one API that you can reach with a http POST method from o
 - For each server deployed :
   - you must follow this form of http post method:
 
-  >http://example.domain:8032/NAME-OF-KUBERNETES-VPN-SERVICE/generateclient
+  >http://example.domain/NAME-OF-KUBERNETES-VPN-SERVICE/generateclient
   >Replace example.domain with your DNS record saved for the access to vpn servers inside the cluster,Replace NAME-OF-KUBERNETES-VPN-SERVICE with the vpn kubernetes service name deployed earlier ( it's always : ${customer_name}-service) *customer_name* is the name used in the jenkins pipeline.
 
   **- why this form exactly ?**
@@ -552,7 +552,7 @@ rm -rf /etc/openvpn/client/$1
 ``` 
 > <ins>NOTE:</ins> that while your building the base image for your VPN servers creation, don't forget to change *YOUR.DOMAIN.HERE* with your actual dns record reserved for the VPN service
 
-- Finally you will find each client created on the persistant volume storage that you have chosen before. <ins>Return to the kubernetes templating file for more details</ins>.
+- Finally you will find each client created on the persistant volume storage that you have chosen before. <ins>Return to the kubernetes templating file for more details</ins>, AND YOU CAN DOWNLOAD THE CLIENT GENERATED ON POSTMAN BY CLICKING ON 'SAVE AND DOWNLOAD'
 
 
 
@@ -673,6 +673,8 @@ echo "patching nginx ingress configmaps and service to route udp/tcp traffic for
 ```
 
 > <ins>**Don't forget to add a new Variable to the pipeline: INGRESS_NAMESPACE**</ins>
+
+
 
 
 

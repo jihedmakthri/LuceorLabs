@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stc1-server
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: "9176"
+  labels:
+    app: stc1-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stc1-server
+  template:
+    metadata:
+      labels:
+        app: stc1-server
+    spec:
+      containers:
+      - name: stc1
+        image: jihedmakthri/vpn-servers:stc1-vpn
+        ports:
+        - containerPort: 1200
+          protocol: TCP
+        - containerPort: 9176
+          protocol: TCP
+        - containerPort: 8032
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+        env:
+        - name: KUBE_VPN_SERVICE_NAME
+          value: stc1-service
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2048Mi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        volumeMounts:
+        - name: stc1-storage
+          mountPath: /var/log/openvpn
+        - name: stc1-client-config
+          mountPath: /etc/openvpn/client
+      volumes:
+      - name: stc1-storage
+        persistentVolumeClaim:
+          claimName: stc1-claim-logs
+      - name: stc1-client-config
+        persistentVolumeClaim:
+          claimName: stc1-claim
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: stc1-service
+  labels:
+    app: stc1-server
+spec:
+  type: ClusterIP
+  ports:
+  - name: vpn
+    port: 1200
+    targetPort: 1200
+    protocol: TCP
+  - name: exporter
+    port: 9176
+    targetPort: 9176
+    protocol: TCP
+  - name: http
+    port: 8032
+    targetPort: 8032
+  selector:
+      app: stc1-server
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stc1-claim-logs
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stc1-claim
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 4Gi
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stc1-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: vpn.luceor.com
+      http:
+        paths:
+          - path: /stc1-service/generateclient
+            pathType: Prefix
+            backend:
+              service:
+                name: stc1-service
+                port:
+                  number: 8032
+

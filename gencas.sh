@@ -79,7 +79,7 @@ mkdir $base_path/VPNs/$SERVER_NAME
 cp pki/ca.crt $base_path/VPNs/$SERVER_NAME 
 touch $base_path/VPNs/$SERVER_NAME/server.conf
 mv pki/dh.pem ta.key pki/issued/$SERVER_NAME.crt pki/private/$SERVER_NAME.key $base_path/VPNs/$SERVER_NAME
-cp $base_path/vpnSHELLclient-0.0.1-SNAPSHOT.jar $base_path/VPNs/$SERVER_NAME
+cp $base_path/vpnSHELLclient-1.1.0-SNAPSHOT.jar $base_path/VPNs/$SERVER_NAME
 generate_openvpn_config(){
 cat << EOF
 server $VPN_SERVER_NETWORK $VPN_SERVER_MASQUE
@@ -127,7 +127,7 @@ cat << EOF
 FROM luceorvpn-abstract-jdk17:1.1
 WORKDIR /etc/openvpn/server
 COPY ca.crt ta.key $SERVER_NAME.crt $SERVER_NAME.key server.conf dh.pem /etc/openvpn/server
-COPY vpnSHELLclient-0.0.1-SNAPSHOT.jar /app.jar
+COPY vpnSHELLclient-1.1.0-SNAPSHOT.jar /app.jar
 COPY entrypoint.sh /start.sh
 EXPOSE 8032
 CMD ["/start.sh"]
