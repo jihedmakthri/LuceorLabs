@@ -33,6 +33,12 @@
  sudo apt-get install -y openvpn easy-rsa
  ```
  - For docker installation follow the official documentation from this link: https://docs.docker.com/engine/install/ubuntu/
+
+ - For a full kubernetes on-premise cluster follow this documentation to deploy it using KubeSpray project: https://github.com/kubernetes-sigs/kubespray
+
+ - For MetalLB installation to make kubernetes provide external IPs from a specefic local subnet follow this link: https://akyriako.medium.com/load-balancing-with-metallb-in-bare-metal-kubernetes-271aab751fb8
+
+ - For NFS-External-Subdir-Provisionner deployment to automate persistant volumes creation for pods in kubernetes, follow this link: https://www.linuxtechi.com/dynamic-nfs-provisioning-kubernetes/
  ### II- Build the project's working directory
 
  - Clone the repository into your 'working directory'
