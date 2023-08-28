@@ -560,7 +560,9 @@ rm -rf /etc/openvpn/client/$1
 
 - Finally you will find each client created on the persistant volume storage that you have chosen before. <ins>Return to the kubernetes templating file for more details</ins>, AND YOU CAN DOWNLOAD THE CLIENT GENERATED ON POSTMAN BY CLICKING ON 'SAVE AND DOWNLOAD'
 
+### VII- Delete server
 
+- If you want to delete a server from the working directory, don't forget to delete also the image from the local docker repository and from your docker hub, delete the customer namespace from your k8s cluster. <ins>*in this case you can use another time the port already used in the server deleted to use it one more time*.</ins>
 
 
 # Updates
@@ -678,7 +680,8 @@ echo "patching nginx ingress configmaps and service to route udp/tcp traffic for
   }
 ```
 
-> <ins>**Don't forget to add a new Variable to the pipeline: INGRESS_NAMESPACE**</ins>
+> <ins>*Don't forget to add a new Variable to the pipeline: INGRESS_NAMESPACE* 
+and NOTE after these updates, i case you want to delete a server, you have to manually delete data from configmaps "udp-services OR tcp-services" and the port mapping from the ingress nginx controller service. </ins>
 
 
 
